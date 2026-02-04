@@ -3,7 +3,6 @@
 # Contain talk loop
 
 import ollama
-import re
 from collections import deque
 #from history_manager import HistoryManager
 import history_manager
@@ -24,7 +23,8 @@ import Prompt_handle
 # now the prompt is refined, sned to DS
 def chat_main():
     # 5 pairs of back and forth, 1 new, 1 old_conv
-    chat_history = deque(maxlen = 12)
+    chat_history = deque(maxlen = 10)
+    distant_mem = history_manager.Talk("This is the start of a new conversation with the User.", "old")
 
     print(f"🤖 Talky Online. (Time: {Prompt_handle.get_current_time_str()})")
 
@@ -41,79 +41,46 @@ def chat_main():
         # into history
         user_input = history_manager.Talk(user_input_raw, "user")
 
-        if len(chat_history) >= 12:
+        # currently only old back and forth 11
+
+        if len(chat_history) >= 10:
             # clean up
-            chat_history[9] = history_manager.treat(chat_history[11], chat_history[10], chat_history[9])
+            # distant_mem += old 2 conv
+            distant_mem = history_manager.treat(distant_mem, chat_history[8], chat_history[9])
 
         # make to list 
         chat_history.append(user_input)
 
-        # send the prompt for handling
-
-
-
-
-# --- MAIN LOOP ---
-def chat_with_secretary():
-
-    
-    # Context buffer (so it remembers the previous question)
-    conversation_history = HistoryManager(max_exchanges=5)
-
-    while True:
-
-
-
-        user_input = input("\nYou: ")
-        if user_input.lower() in ["exit", "quit"]: 
-            save_chat_log(conversation_history)
-            break
-
-        # 1. PRE-PROCESS: Check for PDFs (File paths)
-        # (Simple logic: if input ends in .pdf, treat it as a file)
-        context_data = ""
-        if user_input.strip().endswith(".pdf"):
-            context_data += extract_pdf_text(user_input.strip())
-            # We don't replace the input, we just append the content to the context
-
-        # 2. PRE-PROCESS: Check for Links (http/https)
-        urls = re.findall(r'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\\(\\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+', user_input)
-        for url in urls:
-            context_data += fetch_url_content(url)
-
-        # 3. BUILD PROMPT
-        # We construct the "System Message" fresh every time to update the clock
+        # add context, time, and others
         system_msg = f"""
-        You are a smart personal secretary.
-        CURRENT TIME: {get_current_time_str()}
+            You are a smart personal secretary.
+            CURRENT TIME: {Prompt_handle.get_current_time_str()}
+            
+            INSTRUCTIONS:
+            - If the user asks about a link or PDF, the content is provided below.
+            - Be concise.
+            """
         
-        INSTRUCTIONS:
-        - If the user asks about a link or PDF, the content is provided below.
-        - Be concise.
-        """
+        # put things together
+        final_input = history_manager.combine_history(chat_history, distant_mem)
 
-        # Combine User Input + Any Scraped Data
-        full_prompt = f"{user_input}\n\nDATA:\n{context_data}"
-        conversation_history.add_message('user', full_user).     # !!!!! Work in progress
-
-        # 4. SEND TO OLLAMA
-        print("Thinking...")
-        
-        # We append to history for conversational flow
-        conversation_history.append({'role': 'user', 'content': full_prompt})
-        
-        # Note: If history gets too long, M2 Air might slow down. 
-        # In V3 we will trim this list.
+        # full send
+        print("thinking...\n")
         response = ollama.chat(
-            model='deepseek-r1:8b', # Or 'llama3'
-            messages=[{'role': 'system', 'content': system_msg}] + conversation_history
+            model = 'deepseek-r1:8b',
+            messages = final_input
         )
 
-        reply = response['message']['content']
-        print(f"Secretary: {reply}")
-        
-        # Add reply to history
-        conversation_history.append({'role': 'assistant', 'content': reply})
+        # collect response, put in deque
+        print(response['message']['content'])
+
+        chat_history.append(history_manager.Talk(response['message']['content'], "assistant"))
+
+        # record
+        history_manager.save_talks(chat_history[0], chat_history[1])
+
+
+
 
 if __name__ == "__main__":
     chat_main()

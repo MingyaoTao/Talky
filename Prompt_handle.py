@@ -12,11 +12,31 @@ import fitz  # PyMuPDF
 # return refined + time stamp
 def handler(prompt):
 
-    # add time
+    # check for pdf
+    # (File paths)
+    # (Simple logic: if input ends in .pdf, treat it as a file)
+    # can only check for end
+    context_data = ""
+    if prompt.strip().endswith(".pdf"):
+        context_data += extract_pdf_text(prompt.strip())
+        # We don't replace the input, we just append the content to the context
 
-    # add
+    # check for website
+    # Check for Links (http/https)
+    urls = re.findall(r'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\\(\\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+', prompt)
+    for url in urls:
+        context_data += fetch_url_content(url)
 
-    return prompt
+
+    # combine everything
+    full = f"{prompt}\nDATA:{context_data}"
+
+
+    # get refined
+    # time and prompt context in main
+    
+    return full
+
 
 # Turn PDF into text
 def extract_pdf_text(file_path):
@@ -81,6 +101,8 @@ def save_chat_log(history):
     print("✅ Log saved successfully.")
 
 
+
+    
 
 
 
