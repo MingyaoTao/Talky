@@ -1,0 +1,86 @@
+# 202602
+# Prompt modifying functions
+# handles PDF, website, and (wip) pictures
+import datetime
+import re
+import requests
+from bs4 import BeautifulSoup
+import fitz  # PyMuPDF
+
+# main handler
+# take in raw prompt, detect 
+# return refined + time stamp
+def handler(prompt):
+
+    # add time
+
+    # add
+
+    return prompt
+
+# Turn PDF into text
+def extract_pdf_text(file_path):
+    try:
+        print(f"📄 Reading PDF: {file_path}...")
+        doc = fitz.open(file_path)
+        text = ""
+        # Read first 10 pages only (to save context window)
+        for page in doc[:10]: 
+            text += page.get_text()
+        return f"\n[START PDF CONTENT: {file_path}]\n{text[:10000]}\n[END PDF CONTENT]\n"
+    except Exception as e:
+        return f"[Error reading PDF: {e}]"
+
+# Turn website into text
+# take in web link
+# if able to access, return text
+# if unable , state error, let DS be honest
+def fetch_url_content(url):
+    try:
+        print(f"🌐 Fetching link: {url}...")
+        response = requests.get(url, timeout=5)
+        soup = BeautifulSoup(response.content, 'html.parser')
+        
+        # Kill script and style elements (CSS/JS)
+        for script in soup(["script", "style"]):
+            script.extract()
+            
+        # Get text and clean it up
+        text = soup.get_text()
+        clean_text = " ".join(text.split())[:8000] # Limit to 8k characters to save RAM
+        return f"\n[START WEBPAGE CONTENT: {url}]\n{clean_text}\n[END WEBPAGE CONTENT]\n"
+    except Exception as e:
+        return f"[Error fetching link: {e}]"
+
+# Add time
+def get_current_time_str():
+    return datetime.datetime.now().strftime("%A, %B %d, %Y at %I:%M %p")
+
+
+# logger
+def save_chat_log(history):
+    # Generate a filename with a timestamp
+    timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    filename = f"chat_log_{timestamp}.txt"
+    
+    print(f"\n💾 Saving full chat log to '{filename}'...")
+    
+    with open(filename, "w", encoding="utf-8") as f:
+        f.write(f"=== ASSIST-O-MATIC SESSION LOG: {timestamp} ===\n\n")
+        
+        for message in history:
+            role = message['role'].upper()
+            content = message['content']
+            
+            # We create a nice divider for each message
+            f.write(f"[{role} MESSAGE]\n")
+            f.write("-" * 50 + "\n")
+            f.write(content + "\n")
+            f.write("-" * 50 + "\n\n")
+            
+    print("✅ Log saved successfully.")
+
+
+
+
+
