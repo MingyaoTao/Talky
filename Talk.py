@@ -26,13 +26,15 @@ def chat_main():
     chat_history = deque(maxlen = 10)
     distant_mem = history_manager.Talk("This is the start of a new conversation with the User.", "old")
 
+    timestamp_start = Prompt_handle.get_current_time_str()
+
     print(f"🤖 Talky Online. (Time: {Prompt_handle.get_current_time_str()})")
 
     while True:
         user_input_raw = input("\nYou: ")
 
         if user_input_raw.lower() in ["exit", "quit"]:
-            Prompt_handle.save_chat_log(chat_history)
+            #Prompt_handle.save_chat_log(chat_history)
             break
 
         # handle raw 
@@ -78,7 +80,7 @@ def chat_main():
 
         # record
         history_manager.save_talks(chat_history[0], chat_history[1])
-
+        Prompt_handle.save_chat_log(user_input_raw, response['message']['content'], timestamp_start)
 
 
 

@@ -6,6 +6,7 @@ import re
 import requests
 from bs4 import BeautifulSoup
 import fitz  # PyMuPDF
+import os
 
 # main handler
 # take in raw prompt, detect 
@@ -78,27 +79,27 @@ def get_current_time_str():
 
 
 # logger
-def save_chat_log(history):
+def save_chat_log(prmt, rspo, timestamp):
+    # Take in raw input and raw output
     # Generate a filename with a timestamp
-    timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    filename = f"chat_log_{timestamp}.txt"
+    #timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+
+    folder_name = "Log"
+    os.makedirs(folder_name, exist_ok=True)
+
+    filename = os.path.join(folder_name, f"chat_log_{timestamp}.txt") 
     
-    print(f"\n💾 Saving full chat log to '{filename}'...")
+    #print(f"\n💾 Saving full chat log to '{filename}'...")
     
-    with open(filename, "w", encoding="utf-8") as f:
+    with open(filename, "a", encoding="utf-8") as f:
         f.write(f"=== ASSIST-O-MATIC SESSION LOG: {timestamp} ===\n\n")
         
-        for message in history:
-            role = message['role'].upper()
-            content = message['content']
+        f.write(f"User:\n {prmt}\n\n")
+        f.write("-" * 50 + "\n")
+        f.write(f"Assistant:\n {rspo}" + "\n")
+        f.write("-" * 50 + "\n\n")
             
-            # We create a nice divider for each message
-            f.write(f"[{role} MESSAGE]\n")
-            f.write("-" * 50 + "\n")
-            f.write(content + "\n")
-            f.write("-" * 50 + "\n\n")
-            
-    print("✅ Log saved successfully.")
+    #print("✅ Log saved successfully.")
 
 
 
